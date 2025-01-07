@@ -1,8 +1,9 @@
 [build]
 filehash = false
+public_url = "/app/"
 
 [serve]
-port = 1236
+port = 1111
 
 [[proxy]]
 backend = "http://localhost:1236/proxy"
