@@ -1,2 +1,8 @@
 [build]
 filehash = false
+
+[serve]
+port = 1236
+
+[[proxy]]
+backend = "http://localhost:1236/proxy"
