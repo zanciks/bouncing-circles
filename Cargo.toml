@@ -6,6 +6,7 @@ edition = "2021"
 rust-version = "1.65"
 
 [dependencies]
+wasm-bindgen = "*"
 emath = "*"
 log = "*"
 egui = "0.30.0"

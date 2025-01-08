@@ -1,6 +1,6 @@
 use crate::ball::Ball;
-use eframe::egui::{CentralPanel, Color32, Pos2, Rect, Vec2, Window, Context, Shape, Sense, Ui};
-use log::info;
+use eframe::egui::{CentralPanel, Color32, Context, Pos2, Rect, Sense, Shape, Ui, Vec2, Window};
+use wasm_bindgen::prelude::*;
 
 pub struct Simulation {
     paused: bool,
@@ -56,17 +56,29 @@ impl Simulation {
 
             ball.velocity += Vec2::new(0.0, self.gravity * delta);
             ball.position += ball.velocity;
+
             if ball_bottom > screen_rect.max.y {
+                playSound("/app/dink.mp3");
                 ball.position.y = screen_rect.max.y - self.ball_size;
                 ball.velocity.y *= -1.0;
             }
         }
     }
     fn settings_window(&mut self, ctx: &Context) {
-        Window::new("Settings").movable(false).show(ctx, |ui| {
-            if ui.button("Pause/Unpause").clicked() {
-                self.paused = !self.paused
-            }
+        Window::new("Settings").show(ctx, |ui| {
+            ui.horizontal(|ui| {
+                if ui.button("Pause/Unpause").clicked() {
+                    self.paused = !self.paused
+                };
+                ui.label(format!(
+                    "{}",
+                    match self.paused {
+                        false => "Playing",
+                        true => "Paused",
+                    }
+                ))
+            });
+
             ui.add(egui::Slider::new(&mut self.ball_size, 1.0..=10.0).text("Ball Size"));
             ui.add(egui::Slider::new(&mut self.gravity, 1.0..=10.0).text("Gravity"));
             ui.shrink_width_to_current();
@@ -78,7 +90,8 @@ impl Simulation {
                         self.balls.push(Ball::new(
                             self.control_point * scale,
                             Vec2::ZERO,
-                            self.new_col));
+                            self.new_col,
+                        ));
                     }
                     ui.color_edit_button_srgba(&mut self.new_col);
                 });
@@ -86,8 +99,12 @@ impl Simulation {
         });
     }
     fn position_picker(&mut self, ui: &mut Ui) -> f32 {
-        let (response, painter) = ui.allocate_painter(Vec2::splat(ui.available_width()), Sense::hover());
-        let to_screen = emath::RectTransform::from_to(Rect::from_min_size(Pos2::ZERO, response.rect.size()), response.rect);
+        let width = ui.available_width();
+        let (response, painter) = ui.allocate_painter(Vec2::splat(width), Sense::click_and_drag());
+        let to_screen = emath::RectTransform::from_to(
+            Rect::from_min_size(Pos2::ZERO, response.rect.size()),
+            response.rect,
+        );
         let control_point_radius = 5.0;
 
         let background_color = Color32::from_black_alpha(200);
@@ -109,10 +126,14 @@ impl Simulation {
 
             Shape::circle_stroke(point_in_screen, control_point_radius, stroke)
         };
-    
+
         painter.add(control_point_shape);
 
-        ui.available_width()
+        width
     }
 }
 
+#[wasm_bindgen]
+extern "C" {
+    fn playSound(filePath: &str);
+}

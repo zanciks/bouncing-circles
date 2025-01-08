@@ -1,5 +1,6 @@
 use eframe::egui::{Color32, Pos2, Vec2};
 
+#[derive(PartialEq, Clone, Copy)]
 pub struct Ball {
     pub position: Pos2,
     pub velocity: Vec2,
