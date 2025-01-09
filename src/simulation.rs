@@ -66,17 +66,14 @@ impl Simulation {
     }
     fn physics_update(&mut self, delta: f32) {
         for dot in &mut self.dots {
-            let _dot_left = dot.position.x - self.dot_size;
-            let _dot_right = dot.position.x + self.dot_size;
             let dot_bottom = dot.position.y + self.dot_size;
-            let _dot_top = dot.position.y - self.dot_size;
 
             dot.velocity += Vec2::new(0.0, self.gravity * delta);
             dot.position += dot.velocity;
 
             if dot_bottom > self.simulation_area.max.y {
                 playSound("/app/dink.mp3");
-                dot.position.y = self.simulation_area.max.y - self.dot_size;
+                dot.position.y = self.simulation_area.max.y - 2.0 * self.dot_size;
                 dot.velocity.y *= -1.0;
             }
         }
