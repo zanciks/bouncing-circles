@@ -1,5 +1,7 @@
 use crate::ball::Ball;
-use eframe::egui::{CentralPanel, Color32, Context, Pos2, Rect, Sense, Shape, Ui, Vec2, Window, Stroke};
+use eframe::egui::{
+    CentralPanel, Color32, Context, Pos2, Rect, Sense, Shape, Stroke, Ui, Vec2, Window,
+};
 use wasm_bindgen::prelude::*;
 
 pub struct Simulation {
@@ -54,7 +56,8 @@ impl eframe::App for Simulation {
 impl Simulation {
     fn draw_update(&self, ui: &mut egui::Ui) {
         let background_color = Color32::from_black_alpha(200);
-        ui.painter().rect_filled(self.simulation_area, 0.0, background_color);
+        ui.painter()
+            .rect_filled(self.simulation_area, 0.0, background_color);
 
         for ball in &self.balls {
             ui.painter()
@@ -102,7 +105,8 @@ impl Simulation {
                     if ui.button("Spawn").clicked() {
                         let scale = self.simulation_area.width() / test;
                         self.balls.push(Ball::new(
-                            (self.control_point * scale) + self.simulation_area.left_top().to_vec2(),
+                            (self.control_point * scale)
+                                + self.simulation_area.left_top().to_vec2(),
                             Vec2::ZERO,
                             self.new_col,
                         ));
