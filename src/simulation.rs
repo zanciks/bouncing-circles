@@ -53,14 +53,16 @@ impl eframe::App for Simulation {
         CentralPanel::default().show(ctx, |ui| {
             self.draw_update(ui);
         });
-
     }
 }
 
 impl Simulation {
     fn draw_update(&self, ui: &mut egui::Ui) {
-        ui.painter()
-            .rect_filled(self.simulation_area, 0.0, ui.style().visuals.extreme_bg_color);
+        ui.painter().rect_filled(
+            self.simulation_area,
+            0.0,
+            ui.style().visuals.extreme_bg_color,
+        );
 
         for dot in &self.dots {
             ui.painter()
