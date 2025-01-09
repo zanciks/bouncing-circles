@@ -14,7 +14,7 @@ pub struct Simulation {
     air_resistance: f32,
 
     control_point: Pos2,
-    new_col: Color32,
+    control_color: Color32,
 }
 
 impl Default for Simulation {
@@ -29,7 +29,7 @@ impl Default for Simulation {
             air_resistance: 0.0,
 
             control_point: Pos2::new(91.5, 91.5),
-            new_col: Color32::WHITE,
+            control_color: Color32::WHITE,
         }
     }
 }
@@ -117,10 +117,10 @@ impl Simulation {
                             (self.control_point * scale)
                                 + self.simulation_area.left_top().to_vec2(),
                             Vec2::ZERO,
-                            self.new_col,
+                            self.control_color,
                         ));
                     }
-                    ui.color_edit_button_srgba(&mut self.new_col);
+                    ui.color_edit_button_srgba(&mut self.control_color);
                 });
             });
         });
@@ -148,7 +148,7 @@ impl Simulation {
             self.control_point = to_screen.from().clamp(self.control_point);
 
             let point_in_screen = to_screen.transform_pos(self.control_point);
-            let mut stroke = Stroke::new(1.0, self.new_col);
+            let mut stroke = Stroke::new(1.0, self.control_color);
 
             if point_response.dragged() {
                 stroke.color = stroke.color.lerp_to_gamma(Color32::WHITE, 0.6);
