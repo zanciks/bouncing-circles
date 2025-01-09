@@ -1,15 +1,15 @@
 use eframe::egui::{Color32, Pos2, Vec2};
 
 #[derive(PartialEq, Clone, Copy)]
-pub struct Ball {
+pub struct Dot {
     pub position: Pos2,
     pub velocity: Vec2,
     pub color: Color32,
 }
 
-impl Default for Ball {
-    fn default() -> Ball {
-        Ball {
+impl Default for Dot {
+    fn default() -> Dot {
+        Dot {
             position: Pos2::new(840.0, 0.0),
             velocity: Vec2::new(0.0, 0.0),
             color: Color32::WHITE,
@@ -17,9 +17,9 @@ impl Default for Ball {
     }
 }
 
-impl Ball {
-    pub fn new(position: Pos2, velocity: Vec2, color: Color32) -> Ball {
-        Ball {
+impl Dot {
+    pub fn new(position: Pos2, velocity: Vec2, color: Color32) -> Dot {
+        Dot {
             position,
             velocity,
             color,

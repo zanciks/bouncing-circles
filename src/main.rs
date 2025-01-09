@@ -1,6 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-mod ball;
+mod dot;
 mod simulation;
 
 #[cfg(not(target_arch = "wasm32"))]

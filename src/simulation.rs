@@ -1,4 +1,4 @@
-use crate::ball::Ball;
+use crate::dot::Dot;
 use eframe::egui::{
     CentralPanel, Color32, Context, Pos2, Rect, Sense, Shape, Stroke, Ui, Vec2, Window,
 };
@@ -8,8 +8,8 @@ pub struct Simulation {
     paused: bool,
     simulation_area: Rect,
 
-    balls: Vec<Ball>,
-    ball_size: f32,
+    dots: Vec<Dot>,
+    dot_size: f32,
     gravity: f32,
     control_point: Pos2,
 
@@ -22,8 +22,8 @@ impl Default for Simulation {
             paused: true,
             simulation_area: Rect::ZERO,
 
-            balls: vec![],
-            ball_size: 5.0,
+            dots: vec![],
+            dot_size: 5.0,
             gravity: 5.0,
             control_point: Pos2::new(91.5, 91.5),
 
@@ -59,25 +59,25 @@ impl Simulation {
         ui.painter()
             .rect_filled(self.simulation_area, 0.0, background_color);
 
-        for ball in &self.balls {
+        for dot in &self.dots {
             ui.painter()
-                .circle_filled(ball.position, self.ball_size, ball.color);
+                .circle_filled(dot.position, self.dot_size, dot.color);
         }
     }
     fn physics_update(&mut self, delta: f32) {
-        for ball in &mut self.balls {
-            let _ball_left = ball.position.x - self.ball_size;
-            let _ball_right = ball.position.x + self.ball_size;
-            let ball_bottom = ball.position.y + self.ball_size;
-            let _ball_top = ball.position.y - self.ball_size;
+        for dot in &mut self.dots {
+            let _dot_left = dot.position.x - self.dot_size;
+            let _dot_right = dot.position.x + self.dot_size;
+            let dot_bottom = dot.position.y + self.dot_size;
+            let _dot_top = dot.position.y - self.dot_size;
 
-            ball.velocity += Vec2::new(0.0, self.gravity * delta);
-            ball.position += ball.velocity;
+            dot.velocity += Vec2::new(0.0, self.gravity * delta);
+            dot.position += dot.velocity;
 
-            if ball_bottom > self.simulation_area.max.y {
+            if dot_bottom > self.simulation_area.max.y {
                 playSound("/app/dink.mp3");
-                ball.position.y = self.simulation_area.max.y - self.ball_size;
-                ball.velocity.y *= -1.0;
+                dot.position.y = self.simulation_area.max.y - self.dot_size;
+                dot.velocity.y *= -1.0;
             }
         }
     }
@@ -96,15 +96,15 @@ impl Simulation {
                 ))
             });
 
-            ui.add(egui::Slider::new(&mut self.ball_size, 1.0..=10.0).text("Ball Size"));
+            ui.add(egui::Slider::new(&mut self.dot_size, 1.0..=10.0).text("Dot Size"));
             ui.add(egui::Slider::new(&mut self.gravity, 1.0..=10.0).text("Gravity"));
             ui.shrink_width_to_current();
-            ui.collapsing("Spawn ball", |ui| {
+            ui.collapsing("Spawn dot", |ui| {
                 let test = self.position_picker(ui);
                 ui.horizontal(|ui| {
                     if ui.button("Spawn").clicked() {
                         let scale = self.simulation_area.width() / test;
-                        self.balls.push(Ball::new(
+                        self.dots.push(Dot::new(
                             (self.control_point * scale)
                                 + self.simulation_area.left_top().to_vec2(),
                             Vec2::ZERO,
