@@ -11,8 +11,9 @@ pub struct Simulation {
     dots: Vec<Dot>,
     dot_size: f32,
     gravity: f32,
-    control_point: Pos2,
+    air_resistance: f32,
 
+    control_point: Pos2,
     new_col: Color32,
 }
 
@@ -25,8 +26,9 @@ impl Default for Simulation {
             dots: vec![],
             dot_size: 5.0,
             gravity: 5.0,
-            control_point: Pos2::new(91.5, 91.5),
+            air_resistance: 0.0,
 
+            control_point: Pos2::new(91.5, 91.5),
             new_col: Color32::WHITE,
         }
     }
@@ -43,13 +45,15 @@ impl eframe::App for Simulation {
         let size = (width * 0.95).min(height * 0.95);
         self.simulation_area = Rect::from_center_size(screen_rect.center(), Vec2::splat(size));
 
+        if !self.paused {
+            ctx.input(|i| self.physics_update(i.stable_dt));
+            ctx.request_repaint()
+        }
+
         CentralPanel::default().show(ctx, |ui| {
-            if !self.paused {
-                ctx.input(|i| self.physics_update(i.stable_dt));
-                ctx.request_repaint()
-            }
             self.draw_update(ui);
         });
+
     }
 }
 
@@ -66,13 +70,19 @@ impl Simulation {
     fn physics_update(&mut self, delta: f32) {
         for dot in &mut self.dots {
             let dot_bottom = dot.position.y + self.dot_size;
+            let dot_top = dot.position.y - self.dot_size;
 
             dot.velocity += Vec2::new(0.0, self.gravity * delta);
+            dot.velocity *= (1.0 - self.air_resistance).powf(delta);
             dot.position += dot.velocity;
 
             if dot_bottom > self.simulation_area.max.y {
                 playSound("/app/dink.mp3");
                 dot.position.y = self.simulation_area.max.y - 2.0 * self.dot_size;
+                dot.velocity.y *= -1.0;
+            } else if dot_top < self.simulation_area.min.y {
+                playSound("/app/dink.mp3");
+                dot.position.y = self.simulation_area.min.y + 2.0 * self.dot_size;
                 dot.velocity.y *= -1.0;
             }
         }
@@ -94,6 +104,7 @@ impl Simulation {
 
             ui.add(egui::Slider::new(&mut self.dot_size, 1.0..=10.0).text("Dot Size"));
             ui.add(egui::Slider::new(&mut self.gravity, 1.0..=10.0).text("Gravity"));
+            ui.add(egui::Slider::new(&mut self.air_resistance, 0.0..=1.0).text("Air Resistance"));
             ui.shrink_width_to_current();
             ui.collapsing("Spawn new dot", |ui| {
                 let test = self.position_picker(ui);
@@ -137,8 +148,10 @@ impl Simulation {
             let point_in_screen = to_screen.transform_pos(self.control_point);
             let mut stroke = Stroke::new(1.0, self.new_col);
 
-            if point_response.hovered() {
-                stroke.color = stroke.color.lerp_to_gamma(Color32::WHITE, 0.5);
+            if point_response.dragged() {
+                stroke.color = stroke.color.lerp_to_gamma(Color32::WHITE, 0.6);
+            } else if point_response.hovered() {
+                stroke.color = stroke.color.lerp_to_gamma(Color32::WHITE, 0.4);
             }
 
             Shape::circle_stroke(point_in_screen, control_point_radius, stroke)
