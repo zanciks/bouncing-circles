@@ -99,7 +99,7 @@ impl Simulation {
             ui.add(egui::Slider::new(&mut self.dot_size, 1.0..=10.0).text("Dot Size"));
             ui.add(egui::Slider::new(&mut self.gravity, 1.0..=10.0).text("Gravity"));
             ui.shrink_width_to_current();
-            ui.collapsing("Spawn dot", |ui| {
+            ui.collapsing("Spawn new dot", |ui| {
                 let test = self.position_picker(ui);
                 ui.horizontal(|ui| {
                     if ui.button("Spawn").clicked() {
