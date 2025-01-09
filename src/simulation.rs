@@ -55,9 +55,8 @@ impl eframe::App for Simulation {
 
 impl Simulation {
     fn draw_update(&self, ui: &mut egui::Ui) {
-        let background_color = Color32::from_black_alpha(200);
         ui.painter()
-            .rect_filled(self.simulation_area, 0.0, background_color);
+            .rect_filled(self.simulation_area, 0.0, ui.style().visuals.extreme_bg_color);
 
         for dot in &self.dots {
             ui.painter()
@@ -122,8 +121,7 @@ impl Simulation {
         );
         let control_point_radius = 5.0;
 
-        let background_color = Color32::from_black_alpha(200);
-        painter.rect_filled(response.rect, 0.0, background_color);
+        painter.rect_filled(response.rect, 0.0, ui.style().visuals.extreme_bg_color);
 
         let control_point_shape: Shape = {
             let size = Vec2::splat(2.0 * control_point_radius);
