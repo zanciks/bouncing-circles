@@ -1,9 +1,11 @@
 use crate::ball::Ball;
-use eframe::egui::{CentralPanel, Color32, Context, Pos2, Rect, Sense, Shape, Ui, Vec2, Window};
+use eframe::egui::{CentralPanel, Color32, Context, Pos2, Rect, Sense, Shape, Ui, Vec2, Window, Stroke};
 use wasm_bindgen::prelude::*;
 
 pub struct Simulation {
     paused: bool,
+    simulation_area: Rect,
+
     balls: Vec<Ball>,
     ball_size: f32,
     gravity: f32,
@@ -16,6 +18,8 @@ impl Default for Simulation {
     fn default() -> Simulation {
         Simulation {
             paused: true,
+            simulation_area: Rect::ZERO,
+
             balls: vec![],
             ball_size: 5.0,
             gravity: 5.0,
@@ -29,10 +33,17 @@ impl Default for Simulation {
 impl eframe::App for Simulation {
     fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
         self.settings_window(ctx);
+
         let screen_rect = ctx.screen_rect();
+        let width = screen_rect.width();
+        let height = screen_rect.height();
+
+        let size = (width * 0.95).min(height * 0.95);
+        self.simulation_area = Rect::from_center_size(screen_rect.center(), Vec2::splat(size));
+
         CentralPanel::default().show(ctx, |ui| {
             if !self.paused {
-                ctx.input(|i| self.physics_update(i.stable_dt, screen_rect));
+                ctx.input(|i| self.physics_update(i.stable_dt));
                 ctx.request_repaint()
             }
             self.draw_update(ui);
@@ -42,12 +53,15 @@ impl eframe::App for Simulation {
 
 impl Simulation {
     fn draw_update(&self, ui: &mut egui::Ui) {
+        let background_color = Color32::from_black_alpha(200);
+        ui.painter().rect_filled(self.simulation_area, 0.0, background_color);
+
         for ball in &self.balls {
             ui.painter()
                 .circle_filled(ball.position, self.ball_size, ball.color);
         }
     }
-    fn physics_update(&mut self, delta: f32, screen_rect: Rect) {
+    fn physics_update(&mut self, delta: f32) {
         for ball in &mut self.balls {
             let _ball_left = ball.position.x - self.ball_size;
             let _ball_right = ball.position.x + self.ball_size;
@@ -57,9 +71,9 @@ impl Simulation {
             ball.velocity += Vec2::new(0.0, self.gravity * delta);
             ball.position += ball.velocity;
 
-            if ball_bottom > screen_rect.max.y {
+            if ball_bottom > self.simulation_area.max.y {
                 playSound("/app/dink.mp3");
-                ball.position.y = screen_rect.max.y - self.ball_size;
+                ball.position.y = self.simulation_area.max.y - self.ball_size;
                 ball.velocity.y *= -1.0;
             }
         }
@@ -86,9 +100,9 @@ impl Simulation {
                 let test = self.position_picker(ui);
                 ui.horizontal(|ui| {
                     if ui.button("Spawn").clicked() {
-                        let scale = ctx.screen_rect().max.x / test;
+                        let scale = self.simulation_area.width() / test;
                         self.balls.push(Ball::new(
-                            self.control_point * scale,
+                            (self.control_point * scale) + self.simulation_area.left_top().to_vec2(),
                             Vec2::ZERO,
                             self.new_col,
                         ));
@@ -122,7 +136,11 @@ impl Simulation {
             self.control_point = to_screen.from().clamp(self.control_point);
 
             let point_in_screen = to_screen.transform_pos(self.control_point);
-            let stroke = ui.style().interact(&point_response).fg_stroke;
+            let mut stroke = Stroke::new(1.0, self.new_col);
+
+            if point_response.hovered() {
+                stroke.color = stroke.color.lerp_to_gamma(Color32::WHITE, 0.5);
+            }
 
             Shape::circle_stroke(point_in_screen, control_point_radius, stroke)
         };
