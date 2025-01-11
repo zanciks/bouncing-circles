@@ -70,9 +70,25 @@ impl Simulation {
         }
     }
     fn physics_update(&mut self, delta: f32) {
+        let cloned_dots = self.dots.clone();
+
         for dot in &mut self.dots {
+            for other_dot in &cloned_dots {
+                if dot != other_dot {
+                    let direction = (dot.position.to_vec2() - other_dot.position.to_vec2()).normalized();
+
+                    let distance = dot.position.distance(other_dot.position);
+                    if distance <= 2.0 * self.dot_size {
+                        dot.position += distance * direction * 2.0;
+                        dot.velocity = Vec2::angled(direction.angle()) * dot.velocity.length()
+                    }
+                }
+            }
+
             let dot_bottom = dot.position.y + self.dot_size;
             let dot_top = dot.position.y - self.dot_size;
+            let dot_left = dot.position.x - self.dot_size;
+            let dot_right = dot.position.x + self.dot_size;
 
             dot.velocity += Vec2::new(0.0, self.gravity * delta);
             dot.velocity *= (1.0 - self.air_resistance).powf(delta);
@@ -86,6 +102,16 @@ impl Simulation {
                 playSound("/app/dink.mp3");
                 dot.position.y = self.simulation_area.min.y + 2.0 * self.dot_size;
                 dot.velocity.y *= -1.0;
+            }
+            
+            if dot_left < self.simulation_area.min.x {
+                playSound("/app/dink.mp3");
+                dot.position.x = self.simulation_area.min.x + 2.0 * self.dot_size; 
+                dot.velocity.x *= -1.0;
+            } else if dot_right > self.simulation_area.max.x {
+                playSound("/app/dink.mp3");
+                dot.position.x = self.simulation_area.max.x - 2.0 * self.dot_size;
+                dot.velocity.x *= -1.0;
             }
         }
     }
