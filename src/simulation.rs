@@ -28,7 +28,7 @@ impl Default for Simulation {
             gravity: 5.0,
             air_resistance: 0.0,
 
-            control_point: Pos2::new(91.5, 91.5),
+            control_point: Pos2::new(108.0, 108.0),
             control_color: Color32::WHITE,
         }
     }
