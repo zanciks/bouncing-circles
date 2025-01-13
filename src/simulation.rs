@@ -24,7 +24,7 @@ impl Default for Simulation {
             simulation_area: Rect::ZERO,
 
             dots: vec![],
-            dot_size: 5.0,
+            dot_size: 25.0,
             gravity: 5.0,
             air_resistance: 0.0,
 
@@ -76,11 +76,10 @@ impl Simulation {
             for other_dot in &cloned_dots {
                 if dot != other_dot {
                     let direction = (dot.position.to_vec2() - other_dot.position.to_vec2()).normalized();
-
                     let distance = dot.position.distance(other_dot.position);
-                    if distance <= 2.0 * self.dot_size {
-                        dot.position += distance * direction * 2.0;
-                        dot.velocity = Vec2::angled(direction.angle()) * dot.velocity.length()
+
+                    if distance <= 2.0 * self.dot_size && distance >= 0.5 * self.dot_size {
+                        dot.velocity -= 2.0 * dot.velocity.dot(direction) * direction;
                     }
                 }
             }
@@ -96,21 +95,21 @@ impl Simulation {
 
             if dot_bottom > self.simulation_area.max.y {
                 playSound("/app/dink.mp3");
-                dot.position.y = self.simulation_area.max.y - 2.0 * self.dot_size;
+                dot.position.y = self.simulation_area.max.y - self.dot_size;
                 dot.velocity.y *= -1.0;
             } else if dot_top < self.simulation_area.min.y {
                 playSound("/app/dink.mp3");
-                dot.position.y = self.simulation_area.min.y + 2.0 * self.dot_size;
+                dot.position.y = self.simulation_area.min.y + self.dot_size;
                 dot.velocity.y *= -1.0;
             }
             
             if dot_left < self.simulation_area.min.x {
                 playSound("/app/dink.mp3");
-                dot.position.x = self.simulation_area.min.x + 2.0 * self.dot_size; 
+                dot.position.x = self.simulation_area.min.x + self.dot_size; 
                 dot.velocity.x *= -1.0;
             } else if dot_right > self.simulation_area.max.x {
                 playSound("/app/dink.mp3");
-                dot.position.x = self.simulation_area.max.x - 2.0 * self.dot_size;
+                dot.position.x = self.simulation_area.max.x - self.dot_size;
                 dot.velocity.x *= -1.0;
             }
         }
@@ -130,7 +129,7 @@ impl Simulation {
                 ))
             });
 
-            ui.add(egui::Slider::new(&mut self.dot_size, 1.0..=10.0).text("Dot Size"));
+            ui.add(egui::Slider::new(&mut self.dot_size, 1.0..=25.0).text("Dot Size"));
             ui.add(egui::Slider::new(&mut self.gravity, 1.0..=10.0).text("Gravity"));
             ui.add(egui::Slider::new(&mut self.air_resistance, 0.0..=1.0).text("Air Resistance"));
             ui.shrink_width_to_current();
