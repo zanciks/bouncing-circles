@@ -2,7 +2,6 @@ use crate::{dot::Dot, ring::Ring};
 use eframe::egui::{
     CentralPanel, Color32, Context, Pos2, Rect, Sense, Shape, Slider, Stroke, Ui, Vec2, Window,
 };
-use log::info;
 use wasm_bindgen::prelude::*;
 
 pub struct Simulation {
