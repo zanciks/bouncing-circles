@@ -1,6 +1,5 @@
 [build]
 filehash = false
-public_url = "/app/"
 
 [serve]
 port = 1111
