@@ -10,7 +10,7 @@ pub struct Dot {
 impl Default for Dot {
     fn default() -> Dot {
         Dot {
-            position: Pos2::new(840.0, 0.0),
+            position: Pos2::new(0.0, 0.0),
             velocity: Vec2::new(0.0, 0.0),
             color: Color32::WHITE,
         }

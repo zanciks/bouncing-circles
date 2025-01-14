@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod dot;
+mod ring;
 mod simulation;
 
 #[cfg(not(target_arch = "wasm32"))]

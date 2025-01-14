@@ -1,7 +1,8 @@
-use crate::dot::Dot;
+use crate::{dot::Dot, ring::Ring};
 use eframe::egui::{
-    CentralPanel, Color32, Context, Pos2, Rect, Sense, Shape, Stroke, Ui, Vec2, Window,
+    CentralPanel, Color32, Context, Pos2, Rect, Sense, Shape, Slider, Stroke, Ui, Vec2, Window,
 };
+use log::info;
 use wasm_bindgen::prelude::*;
 
 pub struct Simulation {
@@ -13,8 +14,11 @@ pub struct Simulation {
     gravity: f32,
     air_resistance: f32,
 
-    control_point: Pos2,
-    control_color: Color32,
+    rings: Vec<Ring>,
+    ring_thickness: f32,
+
+    control_dot: Dot,
+    control_ring: Ring,
 }
 
 impl Default for Simulation {
@@ -24,12 +28,18 @@ impl Default for Simulation {
             simulation_area: Rect::ZERO,
 
             dots: vec![],
-            dot_size: 25.0,
+            dot_size: 15.0,
             gravity: 5.0,
-            air_resistance: 0.0,
+            air_resistance: 0.05,
 
-            control_point: Pos2::new(108.0, 108.0),
-            control_color: Color32::WHITE,
+            rings: vec![],
+            ring_thickness: 5.0,
+
+            control_dot: Dot {
+                position: Pos2::new(110.0, 110.0),
+                ..Default::default()
+            },
+            control_ring: Ring::default(),
         }
     }
 }
@@ -57,7 +67,7 @@ impl eframe::App for Simulation {
 }
 
 impl Simulation {
-    fn draw_update(&self, ui: &mut egui::Ui) {
+    fn draw_update(&self, ui: &mut Ui) {
         ui.painter().rect_filled(
             self.simulation_area,
             0.0,
@@ -68,6 +78,14 @@ impl Simulation {
             ui.painter()
                 .circle_filled(dot.position, self.dot_size, dot.color);
         }
+
+        for ring in &self.rings {
+            ui.painter().circle_stroke(
+                ring.center,
+                ring.radius,
+                Stroke::new(self.ring_thickness, ring.color),
+            );
+        }
     }
     fn physics_update(&mut self, delta: f32) {
         let cloned_dots = self.dots.clone();
@@ -75,11 +93,29 @@ impl Simulation {
         for dot in &mut self.dots {
             for other_dot in &cloned_dots {
                 if dot != other_dot {
-                    let direction = (dot.position.to_vec2() - other_dot.position.to_vec2()).normalized();
+                    let direction =
+                        (dot.position.to_vec2() - other_dot.position.to_vec2()).normalized();
                     let distance = dot.position.distance(other_dot.position);
 
                     if distance <= 2.0 * self.dot_size && distance >= 0.5 * self.dot_size {
                         dot.velocity -= 2.0 * dot.velocity.dot(direction) * direction;
+                    }
+                }
+            }
+
+            for ring in &self.rings {
+                let outer_radius = ring.radius + self.ring_thickness + self.dot_size;
+                let inner_radius = ring.radius - self.dot_size;
+
+                let distance = ring.center.distance(dot.position);
+                let penetration_depth = outer_radius - distance;
+
+                if distance >= inner_radius && distance <= outer_radius {
+                    let normal = (dot.position.to_vec2() - ring.center.to_vec2()).normalized();
+                    dot.velocity -= 2.0 * dot.velocity.dot(normal) * normal;
+
+                    if penetration_depth > 0.0 {
+                        dot.position = ring.center + normal * inner_radius;
                     }
                 }
             }
@@ -94,21 +130,17 @@ impl Simulation {
             dot.position += dot.velocity;
 
             if dot_bottom > self.simulation_area.max.y {
-                playSound("/app/dink.mp3");
                 dot.position.y = self.simulation_area.max.y - self.dot_size;
                 dot.velocity.y *= -1.0;
             } else if dot_top < self.simulation_area.min.y {
-                playSound("/app/dink.mp3");
                 dot.position.y = self.simulation_area.min.y + self.dot_size;
                 dot.velocity.y *= -1.0;
             }
-            
+
             if dot_left < self.simulation_area.min.x {
-                playSound("/app/dink.mp3");
-                dot.position.x = self.simulation_area.min.x + self.dot_size; 
+                dot.position.x = self.simulation_area.min.x + self.dot_size;
                 dot.velocity.x *= -1.0;
             } else if dot_right > self.simulation_area.max.x {
-                playSound("/app/dink.mp3");
                 dot.position.x = self.simulation_area.max.x - self.dot_size;
                 dot.velocity.x *= -1.0;
             }
@@ -129,28 +161,51 @@ impl Simulation {
                 ))
             });
 
-            ui.add(egui::Slider::new(&mut self.dot_size, 1.0..=25.0).text("Dot Size"));
-            ui.add(egui::Slider::new(&mut self.gravity, 1.0..=10.0).text("Gravity"));
-            ui.add(egui::Slider::new(&mut self.air_resistance, 0.0..=1.0).text("Air Resistance"));
+            ui.add(Slider::new(&mut self.dot_size, 1.0..=25.0).text("Dot Size"));
+            ui.add(Slider::new(&mut self.gravity, 1.0..=10.0).text("Gravity"));
+            ui.add(Slider::new(&mut self.air_resistance, 0.0..=1.0).text("Air Resistance"));
+            ui.add(Slider::new(&mut self.ring_thickness, 5.0..=25.0).text("Ring Thickness"));
+
             ui.shrink_width_to_current();
+
             ui.collapsing("Spawn new dot", |ui| {
-                let test = self.position_picker(ui);
+                let size = self.move_control_dot(ui);
                 ui.horizontal(|ui| {
                     if ui.button("Spawn").clicked() {
-                        let scale = self.simulation_area.width() / test;
+                        let scale = self.simulation_area.width() / size;
                         self.dots.push(Dot::new(
-                            (self.control_point * scale)
+                            (self.control_dot.position * scale)
                                 + self.simulation_area.left_top().to_vec2(),
                             Vec2::ZERO,
-                            self.control_color,
+                            self.control_dot.color,
                         ));
                     }
-                    ui.color_edit_button_srgba(&mut self.control_color);
+                    ui.color_edit_button_srgba(&mut self.control_dot.color);
                 });
             });
+
+            ui.collapsing("Spawn new ring", |ui| {
+                ui.add(
+                    Slider::new(
+                        &mut self.control_ring.radius,
+                        self.dot_size..=(self.simulation_area.width() / 2.1),
+                    )
+                    .text("Ring Size"),
+                );
+                ui.horizontal(|ui| {
+                    if ui.button("Spawn").clicked() {
+                        self.rings.push(Ring::new(
+                            self.simulation_area.center(),
+                            self.control_ring.radius,
+                            self.control_ring.color,
+                        ))
+                    };
+                    ui.color_edit_button_srgba(&mut self.control_ring.color);
+                });
+            })
         });
     }
-    fn position_picker(&mut self, ui: &mut Ui) -> f32 {
+    fn move_control_dot(&mut self, ui: &mut Ui) -> f32 {
         let width = ui.available_width();
         let (response, painter) = ui.allocate_painter(Vec2::splat(width), Sense::click_and_drag());
         let to_screen = emath::RectTransform::from_to(
@@ -164,16 +219,16 @@ impl Simulation {
         let control_point_shape: Shape = {
             let size = Vec2::splat(2.0 * control_point_radius);
 
-            let point_in_screen = to_screen.transform_pos(self.control_point);
+            let point_in_screen = to_screen.transform_pos(self.control_dot.position);
             let point_rect = Rect::from_center_size(point_in_screen, size);
             let point_id = response.id.with(0);
             let point_response = ui.interact(point_rect, point_id, Sense::drag());
 
-            self.control_point += point_response.drag_delta();
-            self.control_point = to_screen.from().clamp(self.control_point);
+            self.control_dot.position += point_response.drag_delta();
+            self.control_dot.position = to_screen.from().clamp(self.control_dot.position);
 
-            let point_in_screen = to_screen.transform_pos(self.control_point);
-            let mut stroke = Stroke::new(1.0, self.control_color);
+            let point_in_screen = to_screen.transform_pos(self.control_dot.position);
+            let mut stroke = Stroke::new(1.0, self.control_dot.color);
 
             if point_response.dragged() {
                 stroke.color = stroke.color.lerp_to_gamma(Color32::WHITE, 0.6);
