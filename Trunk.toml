@@ -1,5 +1,6 @@
 [build]
 filehash = false
+public_url = "/bouncing-circles/"
 
 [serve]
 port = 1111
